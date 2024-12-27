@@ -163,4 +163,5 @@ pub enum Cap {
     UserMemory2 = KVM_CAP_USER_MEMORY2,
     GuestMemfd = KVM_CAP_GUEST_MEMFD,
     MemoryAttributes = KVM_CAP_MEMORY_ATTRIBUTES,
+    ArmNisvToUser = KVM_CAP_ARM_NISV_TO_USER,
 }

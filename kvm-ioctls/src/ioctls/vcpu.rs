@@ -181,6 +181,14 @@ pub enum VcpuExit<'a> {
     /// of the kvm-ioctls crate. Let the consumer decide about what to do with
     /// it.
     Unsupported(u32),
+
+    /// Corresponds to KVM_EXIT_ARM_NISV
+    ArmNisv {
+        /// esr_iss
+        esr_iss: u64,
+        /// fault_ipa
+        fault_ipa: u64,
+    },
 }
 
 /// Wrapper over KVM vCPU ioctls.
@@ -1552,6 +1560,12 @@ impl VcpuFd {
                     Ok(VcpuExit::IoapicEoi(eoi.vector))
                 }
                 KVM_EXIT_HYPERV => Ok(VcpuExit::Hyperv),
+                KVM_EXIT_ARM_NISV => {
+                    let nisv = unsafe { &mut run.__bindgen_anon_1.arm_nisv };
+                    let esr_iss = nisv.esr_iss;
+                    let fault_ipa = nisv.fault_ipa;
+                    Ok(VcpuExit::ArmNisv { esr_iss, fault_ipa })
+                },
                 r => Ok(VcpuExit::Unsupported(r)),
             }
         } else {
