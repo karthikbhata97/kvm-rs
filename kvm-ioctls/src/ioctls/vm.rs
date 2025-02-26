@@ -1867,6 +1867,31 @@ impl VmFd {
         }
         Ok(())
     }
+
+    /// Check if the vm device has the given attribute
+    /// 
+    /// See the documentation for [Generic VM Interface](https://docs.kernel.org/virt/kvm/devices/vm.html)
+    #[cfg(target_arch = "aarch64")]
+    pub fn has_device_attr(&self, device_attr: &kvm_device_attr) -> Result<()> {
+        // SAFETY: Safe because we call this with a Vm fd and we trust the kernel.
+        let ret = unsafe { ioctl_with_ref(self, KVM_HAS_DEVICE_ATTR(), device_attr) };
+        if ret != 0 {
+            return Err(errno::Error::last());
+        }
+        Ok(())
+    }
+
+    /// Set the vm device attribute
+    /// 
+    /// See the documentation for [Generic VM Interface](https://docs.kernel.org/virt/kvm/devices/vm.html)
+    #[cfg(target_arch = "aarch64")]
+    pub fn set_device_attr(&self, attr: &kvm_device_attr) -> Result<()> {
+        let ret = unsafe { ioctl_with_ref(self, KVM_SET_DEVICE_ATTR(), attr) };
+        if ret != 0 {
+            return Err(errno::Error::last());
+        }
+        Ok(())
+    }
 }
 
 /// Helper function to create a new `VmFd`.
