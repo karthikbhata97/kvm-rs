@@ -7,6 +7,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the THIRD-PARTY file.
 
+// Part of public API
+#[cfg(target_arch = "x86_64")]
+pub use kvm_bindings::nested::KvmNestedStateBuffer;
+
 use kvm_bindings::*;
 use libc::EINVAL;
 use std::fs::File;
@@ -17,7 +21,10 @@ use crate::kvm_ioctls::*;
 use vmm_sys_util::errno;
 use vmm_sys_util::ioctl::{ioctl, ioctl_with_mut_ref, ioctl_with_ref};
 #[cfg(target_arch = "x86_64")]
-use vmm_sys_util::ioctl::{ioctl_with_mut_ptr, ioctl_with_ptr, ioctl_with_val};
+use {
+    std::num::NonZeroUsize,
+    vmm_sys_util::ioctl::{ioctl_with_mut_ptr, ioctl_with_ptr, ioctl_with_val},
+};
 
 /// Helper method to obtain the size of the register through its id
 #[cfg(any(target_arch = "aarch64", target_arch = "riscv64"))]
@@ -225,7 +232,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -255,8 +261,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::{
     ///    KVM_ARM_VCPU_PMU_V3_CTRL, KVM_ARM_VCPU_PMU_V3_INIT
@@ -297,8 +301,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::{
     ///    KVM_ARM_VCPU_PMU_V3_CTRL, KVM_ARM_VCPU_PMU_V3_INIT
@@ -331,12 +333,11 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `regs` - general purpose registers. For details check the `kvm_regs` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -368,7 +369,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -392,12 +392,11 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `sregs` - Special registers. For details check the `kvm_sregs` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -429,7 +428,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -452,13 +450,11 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `fpu` - FPU configuration. For details check the `kvm_fpu` structure in the
-    ///           [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::kvm_fpu;
     /// let kvm = Kvm::new().unwrap();
@@ -493,8 +489,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_bindings::KVM_MAX_CPUID_ENTRIES;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
@@ -538,8 +532,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_bindings::KVM_MAX_CPUID_ENTRIES;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
@@ -571,14 +563,12 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * kvm_enable_cap - KVM capability structure. For details check the `kvm_enable_cap`
-    ///                    structure in the
-    ///                    [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_bindings::{kvm_enable_cap, KVM_MAX_CPUID_ENTRIES, KVM_CAP_HYPERV_SYNIC, KVM_CAP_SPLIT_IRQCHIP};
     /// # use kvm_ioctls::{Kvm, Cap};
     /// let kvm = Kvm::new().unwrap();
@@ -618,7 +608,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -647,11 +636,10 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `klapic` - LAPIC state. For details check the `kvm_lapic_state` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// use std::io::Write;
     ///
@@ -691,13 +679,11 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `msrs`  - MSRs (input/output). For details check the `kvm_msrs` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::{kvm_msr_entry, Msrs};
     /// let kvm = Kvm::new().unwrap();
@@ -736,12 +722,10 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `msrs` - MSRs. For details check the `kvm_msrs` structure in the
-    ///            [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::{kvm_msr_entry, Msrs};
     /// let kvm = Kvm::new().unwrap();
@@ -780,7 +764,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -815,7 +798,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -851,7 +833,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -869,6 +850,62 @@ impl VcpuFd {
         Ok(xsave)
     }
 
+    /// X86 specific call that gets the current vcpu's "xsave struct" via `KVM_GET_XSAVE2`.
+    ///
+    /// See the documentation for `KVM_GET_XSAVE2` in the
+    /// [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///
+    /// # Arguments
+    ///
+    /// * `xsave` - A mutable reference to an [`Xsave`] instance that will be populated with the
+    ///   current vcpu's "xsave struct".
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because there is no guarantee `xsave` is allocated with enough space
+    /// to hold the entire xsave state.
+    ///
+    /// The required size in bytes can be retrieved via `KVM_CHECK_EXTENSION(KVM_CAP_XSAVE2)` and
+    /// can vary depending on features that have been dynamically enabled by `arch_prctl()`. Thus,
+    /// any features must not be enabled dynamically after the required size has been confirmed.
+    ///
+    /// If `xsave` is not large enough, `KVM_GET_XSAVE2` copies data beyond the allocated area,
+    /// possibly causing undefined behavior.
+    ///
+    /// See the documentation for dynamically enabled XSTATE features in the
+    /// [kernel doc](https://docs.kernel.org/arch/x86/xstate.html).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # extern crate vmm_sys_util;
+    /// # use kvm_ioctls::{Kvm, Cap};
+    /// # use kvm_bindings::{Xsave, kvm_xsave, kvm_xsave2};
+    /// # use vmm_sys_util::fam::FamStruct;
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// let vcpu = vm.create_vcpu(0).unwrap();
+    /// let xsave_size = vm.check_extension_int(Cap::Xsave2);
+    /// if xsave_size > 0 {
+    ///     let fam_size = (xsave_size as usize - std::mem::size_of::<kvm_xsave>())
+    ///         .div_ceil(std::mem::size_of::<<kvm_xsave2 as FamStruct>::Entry>());
+    ///     let mut xsave = Xsave::new(fam_size).unwrap();
+    ///     unsafe { vcpu.get_xsave2(&mut xsave).unwrap() };
+    /// }
+    /// ```
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    pub unsafe fn get_xsave2(&self, xsave: &mut Xsave) -> Result<()> {
+        // SAFETY: Safe as long as `xsave` is allocated with enough space to hold the entire "xsave
+        // struct". That's why this function is unsafe.
+        let ret = unsafe {
+            ioctl_with_mut_ref(self, KVM_GET_XSAVE2(), &mut xsave.as_mut_fam_struct().xsave)
+        };
+        if ret != 0 {
+            return Err(errno::Error::last());
+        }
+        Ok(())
+    }
+
     /// X86 specific call that sets the vcpu's current "xsave struct".
     ///
     /// See the documentation for `KVM_SET_XSAVE` in the
@@ -876,28 +913,96 @@ impl VcpuFd {
     ///
     /// # Arguments
     ///
-    /// * `kvm_xsave` - xsave struct to be written.
+    /// * `xsave` - xsave struct to be written.
+    ///
+    /// # Safety
+    ///
+    /// The C `kvm_xsave` struct was extended to have a flexible array member (FAM) at the end in
+    /// Linux 5.17. The size can vary depending on features that have been dynamically enabled via
+    /// `arch_prctl()` and the required size can be retrieved via
+    /// `KVM_CHECK_EXTENSION(KVM_CAP_XSAVE2)`. That means `KVM_SET_XSAVE` may copy data beyond the
+    /// size of the traditional C `kvm_xsave` struct (i.e. 4096 bytes) now.
+    ///
+    /// It is safe if used on Linux prior to 5.17, if no XSTATE features are enabled dynamically or
+    /// if the required size is still within the traditional 4096 bytes even with dynamically
+    /// enabled features. However, if any features are enabled dynamically, it is recommended to use
+    /// `set_xsave2()` instead.
+    ///
+    /// See the documentation for dynamically enabled XSTATE features in the
+    /// [kernel doc](https://docs.kernel.org/arch/x86/xstate.html).
+    ///
+    /// Theoretically, it can be made safe by checking which features are enabled in the bit vector
+    /// of the XSTATE header and validating the required size is less than or equal to 4096 bytes.
+    /// However, to do it properly, we would need to extract the XSTATE header from the `kvm_xsave`
+    /// struct, check enabled features, retrieve the required size for each enabled feature (like
+    /// `setup_xstate_cache()` do in Linux) and calculate the total size.
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
     /// let vcpu = vm.create_vcpu(0).unwrap();
     /// let xsave = Default::default();
     /// // Your `xsave` manipulation here.
-    /// vcpu.set_xsave(&xsave).unwrap();
+    /// unsafe { vcpu.set_xsave(&xsave).unwrap() };
     /// ```
     #[cfg(target_arch = "x86_64")]
-    pub fn set_xsave(&self, xsave: &kvm_xsave) -> Result<()> {
+    pub unsafe fn set_xsave(&self, xsave: &kvm_xsave) -> Result<()> {
         // SAFETY: Here we trust the kernel not to read past the end of the kvm_xsave struct.
         let ret = unsafe { ioctl_with_ref(self, KVM_SET_XSAVE(), xsave) };
         if ret != 0 {
             return Err(errno::Error::last());
         }
         Ok(())
+    }
+
+    /// Convenience function for doing `KVM_SET_XSAVE` with the FAM-enabled [`Xsave`]
+    /// instead of the pre-5.17 plain [`kvm_xsave`].
+    ///
+    /// # Arguments
+    ///
+    /// * `xsave` - A reference to an [`Xsave`] instance to be set.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because there is no guarantee `xsave` is properly allocated with
+    /// the size that KVM assumes.
+    ///
+    /// The required size in bytes can be retrieved via `KVM_CHECK_EXTENSION(KVM_CAP_XSAVE2)` and
+    /// can vary depending on features that have been dynamically enabled by `arch_prctl()`. Thus,
+    /// any features must not be enabled after the required size has been confirmed.
+    ///
+    /// If `xsave` is not large enough, `KVM_SET_XSAVE` copies data beyond the allocated area to
+    /// the kernel, possibly causing undefined behavior.
+    ///
+    /// See the documentation for dynamically enabled XSTATE features in the
+    /// [kernel doc](https://docs.kernel.org/arch/x86/xstate.html).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # extern crate vmm_sys_util;
+    /// # use kvm_ioctls::{Kvm, Cap};
+    /// # use kvm_bindings::{Xsave, kvm_xsave, kvm_xsave2};
+    /// # use vmm_sys_util::fam::FamStruct;
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// let vcpu = vm.create_vcpu(0).unwrap();
+    /// let xsave_size = vm.check_extension_int(Cap::Xsave2);
+    /// if xsave_size > 0 {
+    ///     let fam_size = (xsave_size as usize - std::mem::size_of::<kvm_xsave>())
+    ///         .div_ceil(std::mem::size_of::<<kvm_xsave2 as FamStruct>::Entry>());
+    ///     let xsave = Xsave::new(fam_size).unwrap();
+    ///     // Your `xsave` manipulation here.
+    ///     unsafe { vcpu.set_xsave2(&xsave).unwrap() };
+    /// }
+    /// ```
+    #[cfg(target_arch = "x86_64")]
+    pub unsafe fn set_xsave2(&self, xsave: &Xsave) -> Result<()> {
+        // SAFETY: we trust the kernel and verified parameters
+        unsafe { self.set_xsave(&xsave.as_fam_struct_ref().xsave) }
     }
 
     /// X86 specific call that returns the vcpu's current "xcrs".
@@ -912,7 +1017,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -942,7 +1046,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -973,7 +1076,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1003,7 +1105,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1035,7 +1136,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// if kvm.check_extension(Cap::VcpuEvents) {
@@ -1067,7 +1167,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// if kvm.check_extension(Cap::VcpuEvents) {
@@ -1097,13 +1196,11 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `kvi` - information about preferred CPU target type and recommended features for it.
-    ///           For details check the `kvm_vcpu_init` structure in the
-    ///           [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   For details check the `kvm_vcpu_init` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// use kvm_bindings::kvm_vcpu_init;
     /// let kvm = Kvm::new().unwrap();
@@ -1151,12 +1248,10 @@ impl VcpuFd {
     ///
     /// # Example
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// use std::arch::is_aarch64_feature_detected;
     ///
-    /// use kvm_bindings::{kvm_vcpu_init, KVM_ARM_VCPU_SVE};
+    /// use kvm_bindings::{KVM_ARM_VCPU_SVE, kvm_vcpu_init};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
     /// let vcpu = vm.create_vcpu(0).unwrap();
@@ -1187,14 +1282,12 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `reg_list`  - list of registers (input/output). For details check the `kvm_reg_list`
-    ///                 structure in the
-    ///                 [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::RegList;
     /// let kvm = Kvm::new().unwrap();
@@ -1231,14 +1324,12 @@ impl VcpuFd {
     /// # Arguments
     ///
     /// * `debug_struct` - control bitfields and debug registers, depending on the specific architecture.
-    ///             For details check the `kvm_guest_debug` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   For details check the `kvm_guest_debug` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// # use kvm_bindings::{
     /// #     KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_USE_SW_BP, kvm_guest_debug_arch, kvm_guest_debug
@@ -1363,8 +1454,6 @@ impl VcpuFd {
     /// [https://lwn.net/Articles/658511/](https://lwn.net/Articles/658511/).
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use std::io::Write;
     /// # use std::ptr::null_mut;
     /// # use std::slice;
@@ -1431,7 +1520,7 @@ impl VcpuFd {
     /// }
     /// # }
     /// ```
-    pub fn run(&mut self) -> Result<VcpuExit> {
+    pub fn run(&mut self) -> Result<VcpuExit<'_>> {
         // SAFETY: Safe because we know that our file is a vCPU fd and we verify the return result.
         let ret = unsafe { ioctl(self, KVM_RUN()) };
         if ret == 0 {
@@ -1612,7 +1701,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1642,7 +1730,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Cap, Kvm};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1677,7 +1764,6 @@ impl VcpuFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1710,7 +1796,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1734,7 +1819,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1756,7 +1840,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1778,7 +1861,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1796,7 +1878,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1822,7 +1903,6 @@ impl VcpuFd {
     /// # Example
     ///
     ///  ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::{Kvm, SyncReg, Cap};
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1863,6 +1943,94 @@ impl VcpuFd {
     pub fn smi(&self) -> Result<()> {
         // SAFETY: Safe because we call this with a Vcpu fd and we trust the kernel.
         let ret = unsafe { ioctl(self, KVM_SMI()) };
+        match ret {
+            0 => Ok(()),
+            _ => Err(errno::Error::last()),
+        }
+    }
+
+    /// Returns the nested guest state using the `KVM_GET_NESTED_STATE` ioctl.
+    ///
+    /// This only works when `KVM_CAP_NESTED_STATE` is available.
+    ///
+    /// # Arguments
+    ///
+    /// - `buffer`: The buffer to be filled with the new nested state.
+    ///
+    /// # Return Value
+    /// If this returns `None`, KVM doesn't have nested state. Otherwise, the
+    /// actual length of the state is returned.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use kvm_ioctls::{Kvm, Cap, KvmNestedStateBuffer};
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// let vcpu = vm.create_vcpu(0).unwrap();
+    /// let mut state_buffer = KvmNestedStateBuffer::empty();
+    /// if kvm.check_extension(Cap::NestedState) {
+    ///     vcpu.nested_state(&mut state_buffer).unwrap();
+    ///     // Next, serialize the actual state into a file or so.
+    /// }
+    /// ```
+    ///
+    /// [`Kvm::check_extension_int`]: kvm_ioctls::Kvm::check_extension_int
+    #[cfg(target_arch = "x86_64")]
+    pub fn nested_state(
+        &self,
+        buffer: &mut KvmNestedStateBuffer,
+    ) -> Result<Option<NonZeroUsize /* actual length of state */>> {
+        assert_ne!(buffer.size, 0, "buffer should not report a size of zero");
+
+        // SAFETY: Safe because we call this with a Vcpu fd and we trust the kernel.
+        let ret = unsafe { ioctl_with_mut_ref(self, KVM_GET_NESTED_STATE(), buffer) };
+        match ret {
+            0 => {
+                let size = buffer.size as usize;
+                let just_hdr_size = size_of::<kvm_nested_state>();
+                if size <= just_hdr_size {
+                    Ok(None)
+                } else {
+                    Ok(Some(NonZeroUsize::new(size).unwrap()))
+                }
+            }
+            _ => Err(errno::Error::last()),
+        }
+    }
+
+    /// Sets the nested guest state using the `KVM_SET_NESTED_STATE` ioctl.
+    ///
+    /// This only works when  `KVM_CAP_NESTED_STATE` is available.
+    ///
+    /// # Arguments
+    ///
+    /// - `state`: The new state to be put into KVM. The header must report the
+    ///   `size` of the state properly. The state must be retrieved first using
+    ///   [`Self::nested_state`].
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use kvm_ioctls::{Kvm, Cap, KvmNestedStateBuffer};
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// let vcpu = vm.create_vcpu(0).unwrap();
+    /// if kvm.check_extension(Cap::NestedState) {
+    ///     let mut state_buffer = KvmNestedStateBuffer::empty();
+    ///     vcpu.nested_state(&mut state_buffer).unwrap();
+    ///     // Rename the variable to better reflect the role.
+    ///     let old_state = state_buffer;
+    ///
+    ///     // now assume we transfer the state to a new location
+    ///     // and load it back into kvm:
+    ///     vcpu.set_nested_state(&old_state).unwrap();
+    /// }
+    /// ```
+    #[cfg(target_arch = "x86_64")]
+    pub fn set_nested_state(&self, state: &KvmNestedStateBuffer) -> Result<()> {
+        // SAFETY: Safe because we call this with a Vcpu fd and we trust the kernel.
+        let ret = unsafe { ioctl_with_ref(self, KVM_SET_NESTED_STATE(), state) };
         match ret {
             0 => Ok(()),
             _ => Err(errno::Error::last()),
@@ -1967,7 +2135,6 @@ impl AsRawFd for VcpuFd {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::undocumented_unsafe_blocks)]
-    extern crate byteorder;
 
     use super::*;
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
@@ -2139,7 +2306,7 @@ mod tests {
     fn lapic_test() {
         use std::io::Cursor;
         // We might get read of byteorder if we replace mem::transmute with something safer.
-        use self::byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+        use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
         // As per https://github.com/torvalds/linux/arch/x86/kvm/lapic.c
         // Try to write and read the APIC_ICR (0x300) register which is non-read only and
         // one can simply write to it.
@@ -2235,13 +2402,32 @@ mod tests {
     #[cfg(target_arch = "x86_64")]
     #[test]
     fn xsave_test() {
+        use vmm_sys_util::fam::FamStruct;
+
         let kvm = Kvm::new().unwrap();
         let vm = kvm.create_vm().unwrap();
         let vcpu = vm.create_vcpu(0).unwrap();
         let xsave = vcpu.get_xsave().unwrap();
-        vcpu.set_xsave(&xsave).unwrap();
+        // SAFETY: Safe because no features are enabled dynamically and `xsave` is large enough.
+        unsafe { vcpu.set_xsave(&xsave).unwrap() };
         let other_xsave = vcpu.get_xsave().unwrap();
         assert_eq!(&xsave.region[..], &other_xsave.region[..]);
+
+        let xsave_size = vm.check_extension_int(Cap::Xsave2);
+        // only if KVM_CAP_XSAVE2 is supported
+        if xsave_size > 0 {
+            let fam_size = (xsave_size as usize - std::mem::size_of::<kvm_xsave>())
+                .div_ceil(std::mem::size_of::<<kvm_xsave2 as FamStruct>::Entry>());
+            let mut xsave2 = Xsave::new(fam_size).unwrap();
+            // SAFETY: Safe because `xsave2` is allocated with enough space.
+            unsafe { vcpu.get_xsave2(&mut xsave2).unwrap() };
+            assert_eq!(
+                &xsave.region[..],
+                &xsave2.as_fam_struct_ref().xsave.region[..]
+            );
+            // SAFETY: Safe because `xsave2` is allocated with enough space.
+            unsafe { vcpu.set_xsave2(&xsave2).unwrap() };
+        }
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -2605,325 +2791,6 @@ mod tests {
                 r => panic!("unexpected exit reason: {:?}", r),
             }
         }
-    }
-
-    #[test]
-    #[cfg(any(
-        target_arch = "x86_64",
-        target_arch = "aarch64",
-        target_arch = "riscv64"
-    ))]
-    fn test_faulty_vcpu_fd() {
-        use std::os::unix::io::{FromRawFd, IntoRawFd};
-
-        let badf_errno = libc::EBADF;
-
-        let mut faulty_vcpu_fd = VcpuFd {
-            vcpu: unsafe { File::from_raw_fd(-2) },
-            kvm_run_ptr: KvmRunWrapper {
-                kvm_run_ptr: mmap_anonymous(10).cast(),
-                mmap_size: 10,
-            },
-            coalesced_mmio_ring: None,
-        };
-
-        assert_eq!(
-            faulty_vcpu_fd.get_mp_state().unwrap_err().errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_mp_state(kvm_mp_state::default())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-        assert_eq!(
-            faulty_vcpu_fd.get_vcpu_events().unwrap_err().errno(),
-            badf_errno
-        );
-        #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_vcpu_events(&kvm_vcpu_events::default())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(faulty_vcpu_fd.run().unwrap_err().errno(), badf_errno);
-
-        // Don't drop the File object, or it'll notice the file it's trying to close is
-        // invalid and abort the process.
-        let _ = faulty_vcpu_fd.vcpu.into_raw_fd();
-    }
-
-    #[test]
-    #[cfg(target_arch = "x86_64")]
-    fn test_faulty_vcpu_fd_x86_64() {
-        use std::os::unix::io::{FromRawFd, IntoRawFd};
-
-        let badf_errno = libc::EBADF;
-
-        let faulty_vcpu_fd = VcpuFd {
-            vcpu: unsafe { File::from_raw_fd(-2) },
-            kvm_run_ptr: KvmRunWrapper {
-                kvm_run_ptr: mmap_anonymous(10).cast(),
-                mmap_size: 10,
-            },
-            coalesced_mmio_ring: None,
-        };
-
-        assert_eq!(faulty_vcpu_fd.get_regs().unwrap_err().errno(), badf_errno);
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_regs(&unsafe { std::mem::zeroed() })
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(faulty_vcpu_fd.get_sregs().unwrap_err().errno(), badf_errno);
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_sregs(&unsafe { std::mem::zeroed() })
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(faulty_vcpu_fd.get_fpu().unwrap_err().errno(), badf_errno);
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_fpu(&unsafe { std::mem::zeroed() })
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_cpuid2(
-                    &Kvm::new()
-                        .unwrap()
-                        .get_supported_cpuid(KVM_MAX_CPUID_ENTRIES)
-                        .unwrap()
-                )
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd.get_cpuid2(1).err().unwrap().errno(),
-            badf_errno
-        );
-        // `kvm_lapic_state` does not implement debug by default so we cannot
-        // use unwrap_err here.
-        faulty_vcpu_fd.get_lapic().unwrap_err();
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_lapic(&unsafe { std::mem::zeroed() })
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .get_msrs(&mut Msrs::new(1).unwrap())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_msrs(&Msrs::new(1).unwrap())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd.get_xsave().err().unwrap().errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_xsave(&kvm_xsave::default())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(faulty_vcpu_fd.get_xcrs().unwrap_err().errno(), badf_errno);
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_xcrs(&kvm_xcrs::default())
-                .err()
-                .unwrap()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd.get_debug_regs().unwrap_err().errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_debug_regs(&kvm_debugregs::default())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd.kvmclock_ctrl().unwrap_err().errno(),
-            badf_errno
-        );
-        faulty_vcpu_fd.get_tsc_khz().unwrap_err();
-        faulty_vcpu_fd.set_tsc_khz(1000000).unwrap_err();
-        faulty_vcpu_fd.translate_gva(u64::MAX).unwrap_err();
-
-        // Don't drop the File object, or it'll notice the file it's trying to close is
-        // invalid and abort the process.
-        let _ = faulty_vcpu_fd.vcpu.into_raw_fd();
-    }
-
-    #[test]
-    #[cfg(target_arch = "aarch64")]
-    fn test_faulty_vcpu_target_aarch64() {
-        let kvm = Kvm::new().unwrap();
-        let vm = kvm.create_vm().unwrap();
-        let vcpu = vm.create_vcpu(0).unwrap();
-
-        // KVM defines valid targets as 0 to KVM_ARM_NUM_TARGETS-1, so pick a big raw number
-        // greater than that as target to be invalid
-        let kvi = kvm_vcpu_init {
-            target: 300,
-            ..Default::default()
-        };
-
-        vcpu.vcpu_init(&kvi).unwrap_err();
-    }
-
-    #[test]
-    #[cfg(target_arch = "aarch64")]
-    fn test_faulty_vcpu_fd_aarch64() {
-        use std::os::unix::io::{FromRawFd, IntoRawFd};
-
-        let badf_errno = libc::EBADF;
-
-        let faulty_vcpu_fd = VcpuFd {
-            vcpu: unsafe { File::from_raw_fd(-2) },
-            kvm_run_ptr: KvmRunWrapper {
-                kvm_run_ptr: mmap_anonymous(10).cast(),
-                mmap_size: 10,
-            },
-            coalesced_mmio_ring: None,
-        };
-
-        let device_attr = kvm_device_attr {
-            group: KVM_ARM_VCPU_PMU_V3_CTRL,
-            attr: u64::from(KVM_ARM_VCPU_PMU_V3_INIT),
-            addr: 0x0,
-            flags: 0,
-        };
-
-        let reg_id = 0x6030_0000_0010_0042;
-        let mut reg_data = 0u128.to_le_bytes();
-
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_device_attr(&device_attr)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .has_device_attr(&device_attr)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .vcpu_init(&kvm_vcpu_init::default())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .vcpu_finalize(&(KVM_ARM_VCPU_SVE as i32))
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .get_reg_list(&mut RegList::new(500).unwrap())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_one_reg(reg_id, &reg_data)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .get_one_reg(reg_id, &mut reg_data)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-
-        // Don't drop the File object, or it'll notice the file it's trying to close is
-        // invalid and abort the process.
-        faulty_vcpu_fd.vcpu.into_raw_fd();
-    }
-
-    #[test]
-    #[cfg(target_arch = "riscv64")]
-    fn test_faulty_vcpu_fd_riscv64() {
-        use std::os::unix::io::{FromRawFd, IntoRawFd};
-
-        let badf_errno = libc::EBADF;
-
-        let faulty_vcpu_fd = VcpuFd {
-            vcpu: unsafe { File::from_raw_fd(-2) },
-            kvm_run_ptr: KvmRunWrapper {
-                kvm_run_ptr: mmap_anonymous(10).cast(),
-                mmap_size: 10,
-            },
-            coalesced_mmio_ring: None,
-        };
-
-        let reg_id = 0x8030_0000_0200_000a;
-        let mut reg_data = 0u128.to_le_bytes();
-
-        assert_eq!(
-            faulty_vcpu_fd
-                .get_reg_list(&mut RegList::new(200).unwrap())
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .set_one_reg(reg_id, &reg_data)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-        assert_eq!(
-            faulty_vcpu_fd
-                .get_one_reg(reg_id, &mut reg_data)
-                .unwrap_err()
-                .errno(),
-            badf_errno
-        );
-
-        // Don't drop the File object, or it'll notice the file it's trying to close is
-        // invalid and abort the process.
-        faulty_vcpu_fd.vcpu.into_raw_fd();
     }
 
     #[test]
@@ -3340,7 +3207,7 @@ mod tests {
         let mut kvi: kvm_vcpu_init = kvm_vcpu_init::default();
         vm.get_preferred_target(&mut kvi)
             .expect("Cannot get preferred target");
-        kvi.features[0] |= 1 << KVM_ARM_VCPU_PSCI_0_2 | 1 << KVM_ARM_VCPU_PMU_V3;
+        kvi.features[0] |= (1 << KVM_ARM_VCPU_PSCI_0_2) | (1 << KVM_ARM_VCPU_PMU_V3);
         vcpu.vcpu_init(&kvi).unwrap();
         vcpu.has_device_attr(&dist_attr).unwrap();
         vcpu.set_device_attr(&dist_attr).unwrap();
@@ -3448,12 +3315,12 @@ mod tests {
             .as_slice()
             .iter()
             .find(|entry| entry.function == 1)
-            .map_or(false, |entry| entry.ecx & (1 << 5) != 0);
+            .is_some_and(|entry| entry.ecx & (1 << 5) != 0);
         let supports_vmmcall = cpuid
             .as_slice()
             .iter()
             .find(|entry| entry.function == 0x8000_0001)
-            .map_or(false, |entry| entry.ecx & (1 << 2) != 0);
+            .is_some_and(|entry| entry.ecx & (1 << 2) != 0);
         #[rustfmt::skip]
         let code = if supports_vmcall {
             [
@@ -3794,5 +3661,35 @@ mod tests {
         };
         assert_eq!(addr, ADDR);
         assert_eq!(data, (DATA as u16).to_le_bytes());
+    }
+
+    #[test]
+    #[cfg(target_arch = "x86_64")]
+    fn test_get_and_set_nested_state() {
+        let kvm = Kvm::new().unwrap();
+        let vm = kvm.create_vm().unwrap();
+        let vcpu = vm.create_vcpu(0).unwrap();
+
+        // Ensure that KVM also during runtime never wants more memory than we have pre-allocated
+        // by the helper type. KVM is expected to report:
+        // - 128+4096==4224 on SVM
+        // - 128+8192==8320 on VMX
+        let kvm_nested_state_size = kvm.check_extension_int(Cap::NestedState) as usize;
+        assert!(kvm_nested_state_size <= size_of::<KvmNestedStateBuffer>());
+
+        let mut state_buffer = KvmNestedStateBuffer::default();
+        // Ensure that header shows full buffer length.
+        assert_eq!(
+            state_buffer.size as usize,
+            size_of::<KvmNestedStateBuffer>()
+        );
+
+        vcpu.nested_state(&mut state_buffer).unwrap();
+        let old_state = state_buffer;
+
+        // There is no nested guest in this test, so there is no payload.
+        assert_eq!(state_buffer.size as usize, size_of::<kvm_nested_state>());
+
+        vcpu.set_nested_state(&old_state).unwrap();
     }
 }

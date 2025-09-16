@@ -51,8 +51,6 @@ impl DeviceFd {
     /// upstreamed. Disabling VFIO device test for RISC-V at the time being.
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -101,18 +99,18 @@ impl DeviceFd {
     /// # Arguments
     ///
     /// * `device_attr` - The device attribute to be get.
-    ///                   Note: This argument serves as both input and output.
-    ///                   When calling this function, the user should explicitly provide
-    ///                   valid values for the `group` and the `attr` field of the
-    ///                   `kvm_device_attr` structure, and a valid userspace address
-    ///                   (i.e. the `addr` field) to access the returned device attribute
-    ///                   data.
+    ///   Note: This argument serves as both input and output.
+    ///   When calling this function, the user should explicitly provide
+    ///   valid values for the `group` and the `attr` field of the
+    ///   `kvm_device_attr` structure, and a valid userspace address
+    ///   (i.e. the `addr` field) to access the returned device attribute
+    ///   data.
     ///
     /// # Returns
     ///
     /// * Returns the last occured `errno` wrapped in an `Err`.
     /// * `device_attr` - The `addr` field of the `device_attr` structure will point to
-    ///                   the device attribute data.
+    ///   the device attribute data.
     ///
     /// # Safety
     ///
@@ -124,8 +122,6 @@ impl DeviceFd {
     /// Getting the number of IRQs for a GICv2 device on an aarch64 platform
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -133,8 +129,8 @@ impl DeviceFd {
     /// # #[cfg(target_arch = "aarch64")]
     /// # {
     /// use kvm_bindings::{
-    ///     kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3,
-    ///     KVM_DEV_ARM_VGIC_GRP_NR_IRQS,
+    ///     KVM_DEV_ARM_VGIC_GRP_NR_IRQS, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2,
+    ///     kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3,
     /// };
     ///
     /// // Create a GIC device.
@@ -164,7 +160,7 @@ impl DeviceFd {
     pub unsafe fn get_device_attr(&self, device_attr: &mut kvm_device_attr) -> Result<()> {
         // SAFETY: Caller has ensured device_attr.addr is safe to write to.
         // We are calling this function with a Device fd,  we trust the kernel.
-        let ret = ioctl_with_mut_ref(self, KVM_GET_DEVICE_ATTR(), device_attr);
+        let ret = unsafe { ioctl_with_mut_ref(self, KVM_GET_DEVICE_ATTR(), device_attr) };
         if ret != 0 {
             return Err(errno::Error::last());
         }
@@ -192,7 +188,8 @@ impl FromRawFd for DeviceFd {
     /// that relies on it being true.
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         DeviceFd {
-            fd: File::from_raw_fd(fd),
+            // SAFETY: we trust the kernel and verified parameters
+            fd: unsafe { File::from_raw_fd(fd) },
         }
     }
 }
@@ -202,13 +199,13 @@ mod tests {
     #![allow(clippy::undocumented_unsafe_blocks)]
     use super::*;
     use crate::ioctls::system::Kvm;
-    #[cfg(target_arch = "x86_64")]
-    use kvm_bindings::{
-        kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3, kvm_device_type_KVM_DEV_TYPE_VFIO,
-        KVM_DEV_VFIO_GROUP, KVM_DEV_VFIO_GROUP_ADD,
-    };
     #[cfg(target_arch = "aarch64")]
     use kvm_bindings::{KVM_DEV_VFIO_GROUP, KVM_DEV_VFIO_GROUP_ADD};
+    #[cfg(target_arch = "x86_64")]
+    use kvm_bindings::{
+        KVM_DEV_VFIO_GROUP, KVM_DEV_VFIO_GROUP_ADD, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3,
+        kvm_device_type_KVM_DEV_TYPE_VFIO,
+    };
 
     use kvm_bindings::KVM_CREATE_DEVICE_TEST;
 
@@ -260,7 +257,7 @@ mod tests {
     fn test_create_device() {
         use crate::ioctls::vm::{create_gic_device, request_gic_init, set_supported_nr_irqs};
         use kvm_bindings::{
-            kvm_device_type_KVM_DEV_TYPE_FSL_MPIC_20, KVM_DEV_ARM_VGIC_GRP_NR_IRQS,
+            KVM_DEV_ARM_VGIC_GRP_NR_IRQS, kvm_device_type_KVM_DEV_TYPE_FSL_MPIC_20,
         };
         use vmm_sys_util::errno::Error;
 
@@ -330,9 +327,9 @@ mod tests {
     fn test_create_device() {
         use crate::ioctls::vm::{create_aia_device, request_aia_init, set_supported_nr_irqs};
         use kvm_bindings::{
-            kvm_device_attr, kvm_device_type_KVM_DEV_TYPE_FSL_MPIC_20,
             KVM_DEV_RISCV_AIA_ADDR_APLIC, KVM_DEV_RISCV_AIA_CONFIG_SRCS,
-            KVM_DEV_RISCV_AIA_GRP_ADDR, KVM_DEV_RISCV_AIA_GRP_CONFIG,
+            KVM_DEV_RISCV_AIA_GRP_ADDR, KVM_DEV_RISCV_AIA_GRP_CONFIG, kvm_device_attr,
+            kvm_device_type_KVM_DEV_TYPE_FSL_MPIC_20,
         };
         use vmm_sys_util::errno::Error;
 

@@ -82,6 +82,8 @@ pub enum Cap {
     #[cfg(target_arch = "x86_64")]
     Xsave = KVM_CAP_XSAVE,
     #[cfg(target_arch = "x86_64")]
+    Xsave2 = KVM_CAP_XSAVE2,
+    #[cfg(target_arch = "x86_64")]
     Xcrs = KVM_CAP_XCRS,
     PpcGetPvinfo = KVM_CAP_PPC_GET_PVINFO,
     PpcIrqLevel = KVM_CAP_PPC_IRQ_LEVEL,
@@ -163,5 +165,11 @@ pub enum Cap {
     UserMemory2 = KVM_CAP_USER_MEMORY2,
     GuestMemfd = KVM_CAP_GUEST_MEMFD,
     MemoryAttributes = KVM_CAP_MEMORY_ATTRIBUTES,
+    #[cfg(target_arch = "aarch64")]
     ArmNisvToUser = KVM_CAP_ARM_NISV_TO_USER,
+    #[cfg(target_arch = "x86_64")]
+    NestedState = KVM_CAP_NESTED_STATE,
+    #[cfg(target_arch = "x86_64")]
+    X2ApicApi = KVM_CAP_X2APIC_API,
+    DirtyLogRing = KVM_CAP_DIRTY_LOG_RING,
 }

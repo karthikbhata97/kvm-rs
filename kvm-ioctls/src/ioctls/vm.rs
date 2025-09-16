@@ -14,10 +14,10 @@ use std::os::raw::{c_int, c_ulong};
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 
 use crate::cap::Cap;
-use crate::ioctls::device::new_device;
 use crate::ioctls::device::DeviceFd;
-use crate::ioctls::vcpu::new_vcpu;
+use crate::ioctls::device::new_device;
 use crate::ioctls::vcpu::VcpuFd;
+use crate::ioctls::vcpu::new_vcpu;
 use crate::ioctls::{KvmRunWrapper, Result};
 use crate::kvm_ioctls::*;
 use vmm_sys_util::errno;
@@ -69,8 +69,8 @@ impl VmFd {
     /// # Arguments
     ///
     /// * `user_memory_region` - Guest physical memory slot. For details check the
-    ///         `kvm_userspace_memory_region` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   `kvm_userspace_memory_region` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Safety
     ///
@@ -84,9 +84,6 @@ impl VmFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// extern crate kvm_bindings;
-    ///
     /// use kvm_bindings::kvm_userspace_memory_region;
     /// use kvm_ioctls::Kvm;
     ///
@@ -107,7 +104,9 @@ impl VmFd {
         &self,
         user_memory_region: kvm_userspace_memory_region,
     ) -> Result<()> {
-        let ret = ioctl_with_ref(self, KVM_SET_USER_MEMORY_REGION(), &user_memory_region);
+        // SAFETY: we trust the kernel and verified parameters
+        let ret =
+            unsafe { ioctl_with_ref(self, KVM_SET_USER_MEMORY_REGION(), &user_memory_region) };
         if ret == 0 {
             Ok(())
         } else {
@@ -122,8 +121,8 @@ impl VmFd {
     /// # Arguments
     ///
     /// * `user_memory_region2` - Guest physical memory slot. For details check the
-    ///             `kvm_userspace_memory_region2` structure in the
-    ///             [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   `kvm_userspace_memory_region2` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Safety
     ///
@@ -140,13 +139,10 @@ impl VmFd {
     ///
     /// On x86, create a `KVM_X86_SW_PROTECTED_VM` with a memslot that has a `guest_memfd` associated.
     ///
-    /// ```rust
-    /// # extern crate kvm_ioctls;
-    /// extern crate kvm_bindings;
-    ///
+    /// ```rust///
     /// use kvm_bindings::{
-    ///     kvm_create_guest_memfd, kvm_userspace_memory_region2, KVM_CAP_GUEST_MEMFD,
-    ///     KVM_CAP_USER_MEMORY2, KVM_MEM_GUEST_MEMFD,
+    ///     KVM_CAP_GUEST_MEMFD, KVM_CAP_USER_MEMORY2, KVM_MEM_GUEST_MEMFD, kvm_create_guest_memfd,
+    ///     kvm_userspace_memory_region2,
     /// };
     /// use kvm_ioctls::{Cap, Kvm};
     /// use std::os::fd::RawFd;
@@ -193,7 +189,9 @@ impl VmFd {
         &self,
         user_memory_region2: kvm_userspace_memory_region2,
     ) -> Result<()> {
-        let ret = ioctl_with_ref(self, KVM_SET_USER_MEMORY_REGION2(), &user_memory_region2);
+        // SAFETY: we trust the kernel and verified parameters
+        let ret =
+            unsafe { ioctl_with_ref(self, KVM_SET_USER_MEMORY_REGION2(), &user_memory_region2) };
         if ret == 0 {
             Ok(())
         } else {
@@ -240,7 +238,6 @@ impl VmFd {
     /// # Example
     ///
     /// ```rust
-    /// # extern crate kvm_ioctls;
     /// # use kvm_ioctls::Kvm;
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -275,7 +272,7 @@ impl VmFd {
     /// #[cfg(target_arch = "aarch64")]
     /// {
     ///     use kvm_bindings::{
-    ///         kvm_create_device, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2, KVM_CREATE_DEVICE_TEST,
+    ///         KVM_CREATE_DEVICE_TEST, kvm_create_device, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2,
     ///     };
     ///     let mut gic_device = kvm_create_device {
     ///         type_: kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2,
@@ -374,7 +371,7 @@ impl VmFd {
     /// # Arguments
     ///
     /// * pit_config - PIT configuration. For details check the `kvm_pit_config` structure in the
-    ///                [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     /// # Example
     ///
     /// ```rust
@@ -546,7 +543,7 @@ impl VmFd {
     /// # Arguments
     ///
     /// * kvm_msi - MSI message configuration. For details check the `kvm_msi` structure in the
-    ///                [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     /// # Example
     ///
     /// In this example, the important function signal_msi() calling into
@@ -596,17 +593,17 @@ impl VmFd {
     /// # Arguments
     ///
     /// * kvm_irq_routing - IRQ routing configuration. Describe all routes
-    ///                     associated with GSI entries. For details check
-    ///                     the `kvm_irq_routing` and `kvm_irq_routing_entry`
-    ///                     structures in the
-    ///                     [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   associated with GSI entries. For details check
+    ///   the `kvm_irq_routing` and `kvm_irq_routing_entry`
+    ///   structures in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     /// # Example
     ///
     /// ```rust
     /// # extern crate kvm_ioctls;
     /// extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
-    /// use kvm_bindings::kvm_irq_routing;
+    /// use kvm_bindings::KvmIrqRouting;
     ///
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -622,7 +619,7 @@ impl VmFd {
     /// })
     /// .expect("Cannot create KVM vAIA device.");
     ///
-    /// let irq_routing = kvm_irq_routing::default();
+    /// let irq_routing = KvmIrqRouting::new(0).unwrap();
     /// vm.set_gsi_routing(&irq_routing).unwrap();
     /// ```
     #[cfg(any(
@@ -630,10 +627,11 @@ impl VmFd {
         target_arch = "aarch64",
         target_arch = "riscv64"
     ))]
-    pub fn set_gsi_routing(&self, irq_routing: &kvm_irq_routing) -> Result<()> {
+    pub fn set_gsi_routing(&self, irq_routing: &KvmIrqRouting) -> Result<()> {
         // SAFETY: Safe because we allocated the structure and we know the kernel
         // will read exactly the size of the structure.
-        let ret = unsafe { ioctl_with_ref(self, KVM_SET_GSI_ROUTING(), irq_routing) };
+        let ret =
+            unsafe { ioctl_with_ref(self, KVM_SET_GSI_ROUTING(), irq_routing.as_fam_struct_ref()) };
         if ret == 0 {
             Ok(())
         } else {
@@ -648,11 +646,11 @@ impl VmFd {
     /// # Arguments
     ///
     /// * `fd` - `EventFd` which will be signaled. When signaling, the usual `vmexit` to userspace
-    ///           is prevented.
+    ///   is prevented.
     /// * `addr` - Address being written to.
     /// * `datamatch` - Limits signaling `fd` to only the cases where the value being written is
-    ///                 equal to this parameter. The size of `datamatch` is important and it must
-    ///                 match the expected size of the guest's write.
+    ///   equal to this parameter. The size of `datamatch` is important and it must
+    ///   match the expected size of the guest's write.
     ///
     /// # Example
     ///
@@ -661,7 +659,7 @@ impl VmFd {
     /// extern crate libc;
     /// extern crate vmm_sys_util;
     /// # use kvm_ioctls::{IoEventAddress, Kvm, NoDatamatch};
-    /// use libc::{eventfd, EFD_NONBLOCK};
+    /// use libc::{EFD_NONBLOCK, eventfd};
     /// use vmm_sys_util::eventfd::EventFd;
     /// let kvm = Kvm::new().unwrap();
     /// let vm_fd = kvm.create_vm().unwrap();
@@ -691,8 +689,8 @@ impl VmFd {
             datamatch: datamatch.into(),
             len: std::mem::size_of::<T>() as u32,
             addr: match addr {
-                IoEventAddress::Pio(ref p) => *p,
-                IoEventAddress::Mmio(ref m) => *m,
+                IoEventAddress::Pio(p) => *p,
+                IoEventAddress::Mmio(m) => *m,
             },
             fd: fd.as_raw_fd(),
             flags,
@@ -767,8 +765,8 @@ impl VmFd {
             datamatch: datamatch.into(),
             len: std::mem::size_of::<T>() as u32,
             addr: match addr {
-                IoEventAddress::Pio(ref p) => *p,
-                IoEventAddress::Mmio(ref m) => *m,
+                IoEventAddress::Pio(p) => *p,
+                IoEventAddress::Mmio(m) => *m,
             },
             fd: fd.as_raw_fd(),
             flags,
@@ -1242,7 +1240,8 @@ impl VmFd {
     /// let vcpu = unsafe { vm.create_vcpu_from_rawfd(rawfd).unwrap() };
     /// ```
     pub unsafe fn create_vcpu_from_rawfd(&self, fd: RawFd) -> Result<VcpuFd> {
-        let vcpu = File::from_raw_fd(fd);
+        // SAFETY: we trust the kernel and verified parameters
+        let vcpu = unsafe { File::from_raw_fd(fd) };
         let kvm_run_ptr = KvmRunWrapper::mmap_from_fd(&vcpu, self.run_size)?;
         Ok(new_vcpu(vcpu, kvm_run_ptr))
     }
@@ -1254,7 +1253,7 @@ impl VmFd {
     /// # Arguments
     ///
     /// * `device`: device configuration. For details check the `kvm_create_device` structure in the
-    ///                [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
@@ -1263,9 +1262,9 @@ impl VmFd {
     /// # extern crate kvm_bindings;
     /// # use kvm_ioctls::Kvm;
     /// use kvm_bindings::{
-    ///     kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3,
-    ///     kvm_device_type_KVM_DEV_TYPE_RISCV_AIA, kvm_device_type_KVM_DEV_TYPE_VFIO,
-    ///     KVM_CREATE_DEVICE_TEST,
+    ///     KVM_CREATE_DEVICE_TEST, kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V2,
+    ///     kvm_device_type_KVM_DEV_TYPE_ARM_VGIC_V3, kvm_device_type_KVM_DEV_TYPE_RISCV_AIA,
+    ///     kvm_device_type_KVM_DEV_TYPE_VFIO,
     /// };
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1317,8 +1316,8 @@ impl VmFd {
     ///
     /// # Arguments
     /// * `kvi` - CPU target configuration (out). For details check the `kvm_vcpu_init`
-    ///           structure in the
-    ///           [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
@@ -1352,8 +1351,8 @@ impl VmFd {
     /// # Arguments
     ///
     /// * kvm_enable_cap - KVM capability structure. For details check the `kvm_enable_cap`
-    ///                    structure in the
-    ///                    [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
@@ -1362,7 +1361,7 @@ impl VmFd {
     /// extern crate kvm_bindings;
     ///
     /// # use kvm_ioctls::Kvm;
-    /// use kvm_bindings::{kvm_enable_cap, KVM_CAP_SPLIT_IRQCHIP};
+    /// use kvm_bindings::{KVM_CAP_SPLIT_IRQCHIP, kvm_enable_cap};
     ///
     /// let kvm = Kvm::new().unwrap();
     /// let vm = kvm.create_vm().unwrap();
@@ -1402,10 +1401,50 @@ impl VmFd {
     /// Wrapper over `KVM_CHECK_EXTENSION`.
     ///
     /// Returns 0 if the capability is not available and a positive integer otherwise.
-    fn check_extension_int(&self, c: Cap) -> i32 {
-        // SAFETY: Safe because we know that our file is a VM fd and that the extension is one of
-        // the ones defined by kernel.
-        unsafe { ioctl_with_val(self, KVM_CHECK_EXTENSION(), c as c_ulong) }
+    /// See the documentation for `KVM_CHECK_EXTENSION`.
+    ///
+    /// # Arguments
+    ///
+    /// * `c` - KVM capability to check.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use kvm_ioctls::Kvm;
+    /// use kvm_ioctls::Cap;
+    ///
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// assert!(vm.check_extension_int(Cap::MaxVcpus) > 0);
+    /// ```
+    pub fn check_extension_int(&self, c: Cap) -> i32 {
+        self.check_extension_raw(c as c_ulong)
+    }
+
+    /// Wrapper over `KVM_CHECK_EXTENSION`.
+    ///
+    /// Returns 0 if the capability is not available and a positive integer otherwise.
+    /// See the documentation for `KVM_CHECK_EXTENSION`.
+    ///
+    /// # Arguments
+    ///
+    /// * `c` - KVM capability to check in a form of a raw integer.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use kvm_ioctls::Kvm;
+    /// # use std::os::raw::c_ulong;
+    /// use kvm_ioctls::Cap;
+    ///
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    /// assert!(vm.check_extension_raw(Cap::MaxVcpus as c_ulong) > 0);
+    /// ```
+    pub fn check_extension_raw(&self, c: c_ulong) -> i32 {
+        // SAFETY: Safe because we know that our file is a KVM fd.
+        // If `c` is not a known kernel extension, kernel will return 0.
+        unsafe { ioctl_with_val(self, KVM_CHECK_EXTENSION(), c) }
     }
 
     /// Checks if a particular `Cap` is available.
@@ -1441,8 +1480,8 @@ impl VmFd {
     /// # Arguments
     ///
     /// * kvm_create_guest_memfd - KVM create guest memfd structure. For details check the
-    ///                    `kvm_create_guest_memfd` structure in the
-    ///                    [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   `kvm_create_guest_memfd` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
@@ -1451,7 +1490,7 @@ impl VmFd {
     /// extern crate kvm_bindings;
     ///
     /// # use kvm_ioctls::{Cap, Kvm};
-    /// use kvm_bindings::{kvm_create_guest_memfd, KVM_CAP_GUEST_MEMFD};
+    /// use kvm_bindings::{KVM_CAP_GUEST_MEMFD, kvm_create_guest_memfd};
     /// use std::os::fd::RawFd;
     ///
     /// let kvm = Kvm::new().unwrap();
@@ -1493,8 +1532,8 @@ impl VmFd {
     /// # Arguments
     ///
     /// * kvm_memory_attributes - KVM set memory attributes structure. For details check the
-    ///                    `kvm_memory_attributes` structure in the
-    ///                    [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
+    ///   `kvm_memory_attributes` structure in the
+    ///   [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt).
     ///
     /// # Example
     ///
@@ -1504,9 +1543,9 @@ impl VmFd {
     ///
     /// # use kvm_ioctls::{Cap, Kvm};
     /// use kvm_bindings::{
-    ///     kvm_create_guest_memfd, kvm_memory_attributes, kvm_userspace_memory_region2,
-    ///     KVM_CAP_GUEST_MEMFD, KVM_CAP_MEMORY_ATTRIBUTES, KVM_CAP_USER_MEMORY2,
-    ///     KVM_MEMORY_ATTRIBUTE_PRIVATE, KVM_MEM_GUEST_MEMFD,
+    ///     KVM_CAP_GUEST_MEMFD, KVM_CAP_MEMORY_ATTRIBUTES, KVM_CAP_USER_MEMORY2, KVM_MEM_GUEST_MEMFD,
+    ///     KVM_MEMORY_ATTRIBUTE_PRIVATE, kvm_create_guest_memfd, kvm_memory_attributes,
+    ///     kvm_userspace_memory_region2,
     /// };
     /// use std::os::fd::RawFd;
     ///
@@ -1607,7 +1646,8 @@ impl VmFd {
     /// ```
     #[cfg(target_arch = "x86_64")]
     pub unsafe fn encrypt_op<T>(&self, op: *mut T) -> Result<()> {
-        let ret = ioctl_with_mut_ptr(self, KVM_MEMORY_ENCRYPT_OP(), op);
+        // SAFETY: we trust the kernel and verified parameters
+        let ret = unsafe { ioctl_with_mut_ptr(self, KVM_MEMORY_ENCRYPT_OP(), op) };
         if ret == 0 {
             Ok(())
         } else {
@@ -1868,25 +1908,89 @@ impl VmFd {
         Ok(())
     }
 
-    /// Check if the vm device has the given attribute
-    /// 
-    /// See the documentation for [Generic VM Interface](https://docs.kernel.org/virt/kvm/devices/vm.html)
+    /// Sets a specified piece of vm configuration and/or state.
+    ///
+    /// See the documentation for `KVM_SET_DEVICE_ATTR` in
+    /// [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt)
+    /// # Arguments
+    ///
+    /// * `device_attr` - The vm attribute to be set.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # extern crate kvm_ioctls;
+    /// # extern crate kvm_bindings;
+    /// # use kvm_ioctls::Kvm;
+    /// # use kvm_bindings::{
+    ///    PSCI_0_2_FN64_BASE, kvm_smccc_filter_action_KVM_SMCCC_FILTER_FWD_TO_USER,
+    ///    KVM_ARM_VM_SMCCC_CTRL, KVM_ARM_VM_SMCCC_FILTER
+    /// };
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    ///
+    /// const PSCI_0_2_FN64_CPU_ON: u32 = PSCI_0_2_FN64_BASE + 3;
+    /// let smccc_filter = kvm_bindings::kvm_smccc_filter {
+    ///     base: PSCI_0_2_FN64_CPU_ON,
+    ///     nr_functions: 1,
+    ///     action: kvm_smccc_filter_action_KVM_SMCCC_FILTER_FWD_TO_USER as u8,
+    ///     pad: [0u8; 15],
+    /// };
+    ///
+    /// let dist_attr = kvm_bindings::kvm_device_attr {
+    ///     group: KVM_ARM_VM_SMCCC_CTRL,
+    ///     attr: KVM_ARM_VM_SMCCC_FILTER as u64,
+    ///     addr: &smccc_filter as *const _ as u64,
+    ///     flags: 0,
+    /// };
+    ///
+    /// if (vm.has_device_attr(&dist_attr).is_ok()) {
+    ///     vm.set_device_attr(&dist_attr).unwrap();
+    /// }
+    /// ```
     #[cfg(target_arch = "aarch64")]
-    pub fn has_device_attr(&self, device_attr: &kvm_device_attr) -> Result<()> {
+    pub fn set_device_attr(&self, device_attr: &kvm_device_attr) -> Result<()> {
         // SAFETY: Safe because we call this with a Vm fd and we trust the kernel.
-        let ret = unsafe { ioctl_with_ref(self, KVM_HAS_DEVICE_ATTR(), device_attr) };
+        let ret = unsafe { ioctl_with_ref(self, KVM_SET_DEVICE_ATTR(), device_attr) };
         if ret != 0 {
             return Err(errno::Error::last());
         }
         Ok(())
     }
 
-    /// Set the vm device attribute
-    /// 
-    /// See the documentation for [Generic VM Interface](https://docs.kernel.org/virt/kvm/devices/vm.html)
+    /// Tests whether a vm supports a particular attribute.
+    ///
+    /// See the documentation for `KVM_HAS_DEVICE_ATTR` in
+    /// [KVM API doc](https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt)
+    /// # Arguments
+    ///
+    /// * `device_attr` - The vm attribute to be tested. `addr` field is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # extern crate kvm_ioctls;
+    /// # extern crate kvm_bindings;
+    /// # use kvm_ioctls::Kvm;
+    /// # use kvm_bindings::{
+    ///    KVM_ARM_VM_SMCCC_CTRL, KVM_ARM_VM_SMCCC_FILTER
+    /// };
+    /// let kvm = Kvm::new().unwrap();
+    /// let vm = kvm.create_vm().unwrap();
+    ///
+    /// let dist_attr = kvm_bindings::kvm_device_attr {
+    ///     group: KVM_ARM_VM_SMCCC_CTRL,
+    ///     attr: KVM_ARM_VM_SMCCC_FILTER as u64,
+    ///     addr: 0x0,
+    ///     flags: 0,
+    /// };
+    ///
+    /// vm.has_device_attr(&dist_attr);
+    /// ```
     #[cfg(target_arch = "aarch64")]
-    pub fn set_device_attr(&self, attr: &kvm_device_attr) -> Result<()> {
-        let ret = unsafe { ioctl_with_ref(self, KVM_SET_DEVICE_ATTR(), attr) };
+    pub fn has_device_attr(&self, device_attr: &kvm_device_attr) -> Result<()> {
+        // SAFETY: Safe because we call this with a Vm fd and we trust the kernel.
+        let ret = unsafe { ioctl_with_ref(self, KVM_HAS_DEVICE_ATTR(), device_attr) };
         if ret != 0 {
             return Err(errno::Error::last());
         }
@@ -2654,7 +2758,7 @@ mod tests {
     fn test_set_gsi_routing() {
         let kvm = Kvm::new().unwrap();
         let vm = kvm.create_vm().unwrap();
-        let irq_routing = kvm_irq_routing::default();
+        let irq_routing = KvmIrqRouting::new(0).unwrap();
 
         // Expect failure for x86 since the irqchip is not created yet.
         #[cfg(target_arch = "x86_64")]
@@ -2770,5 +2874,30 @@ mod tests {
         );
         vm.register_enc_memory_region(&memory_region).unwrap();
         vm.unregister_enc_memory_region(&memory_region).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_arch = "aarch64")]
+    fn test_set_smccc_filter() {
+        let kvm = Kvm::new().unwrap();
+        let vm = kvm.create_vm().unwrap();
+
+        const PSCI_0_2_FN64_CPU_ON: u32 = PSCI_0_2_FN64_BASE + 3;
+        let smccc_filter = kvm_bindings::kvm_smccc_filter {
+            base: PSCI_0_2_FN64_CPU_ON,
+            nr_functions: 1,
+            action: kvm_smccc_filter_action_KVM_SMCCC_FILTER_FWD_TO_USER as u8,
+            pad: [0u8; 15],
+        };
+
+        let dist_attr = kvm_bindings::kvm_device_attr {
+            group: KVM_ARM_VM_SMCCC_CTRL,
+            attr: KVM_ARM_VM_SMCCC_FILTER as u64,
+            addr: &smccc_filter as *const _ as u64,
+            flags: 0,
+        };
+
+        vm.has_device_attr(&dist_attr).unwrap();
+        vm.set_device_attr(&dist_attr).unwrap();
     }
 }

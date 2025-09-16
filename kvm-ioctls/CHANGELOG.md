@@ -2,10 +2,71 @@
 
 ## Upcoming Release
 
-### Added 
+- Plumb through KVM_CAP_DIRTY_LOG_RING as DirtyLogRing cap.
 
-- [[#288](https://github.com/rust-vmm/kvm-ioctls/pull/288)]: Introduce `Cap::GuestMemfd`, `Cap::MemoryAttributes` and 
+## v0.24.0
+
+### Added
+
+- Plumb through KVM_CAP_X2APIC_API as X2ApicApi cap.
+- [[#334]](https://github.com/rust-vmm/kvm/pull/334) Added support for
+  `KVM_HAS_DEVICE_ATTR` and `KVM_SET_DEVICE_ATTR` vm ioctl on aarch64.
+
+## Changed
+
+- Rust edition 2024
+
+## v0.23.0
+
+### Added
+
+- [[#322]](https://github.com/rust-vmm/kvm/pull/322) Added
+  `VcpuFd::nested_state()`and `VcpuFd::set_nested_state()` to work with nested
+  KVM state. Only works on `x86`. The helper type `KvmNestedStateBuffer`makes
+  these new functions easily usable.
+
+### Changed
+
+- Upgrade `kvm-bindings` to `v0.13.0`
+
+## v0.22.0
+
+### Changed
+
+- [[#324]](https://github.com/rust-vmm/kvm/pull/324) Upgrade kvm-bindings to v0.12.0
+- [[#323]](https://github.com/rust-vmm/kvm/pull/323) Upgrade vmm-sys-util to v0.14.0
+
+## v0.21.0
+
+### Added
+
+- [[#310](https://github.com/rust-vmm/kvm/pull/310)]: Added support for
+  `KVM_CAP_XSAVE2` and the `KVM_GET_XSAVE2` ioctl.
+
+### Changed
+
+- [[#310](https://github.com/rust-vmm/kvm/pull/310)]: Changed `set_xsave()`
+  `unsafe` because the C `kvm_xsave` struct was extended to have a flexible
+  array member (FAM) in the end in Linux 5.16 and `KVM_SET_XSAVE` may copy data
+  beyond the traditional size (i.e. 4096 bytes). If any features are enabled
+  dynamically on Linux 5.16+, it is recommended to use `set_xsave2()` instead.
+- [[#325]](https://github.com/rust-vmm/kvm/pull/325)]: Changed
+  `set_gsi_routing()` to use the newly created `KvmIrqRouting` type which is a
+  `FamStruct` wrapper over `kvm_irq_routing`. This way we can safely call the
+  `ioctl` without relying on the caller making sure the memory layout of
+  `kvm_irq_routing` is sane.
+
+## v0.20.0
+
+### Added
+
+- [[#288](https://github.com/rust-vmm/kvm-ioctls/pull/288)]: Introduce `Cap::GuestMemfd`, `Cap::MemoryAttributes` and
    `Cap::UserMemory2` capabilities enum variants for use with `VmFd::check_extension`.
+- [[#288](https://github.com/rust-vmm/kvm-ioctls/pull/288)]: Introduce `VmFd::check_extension_raw` and `VmFd::check_extension_int` to allow `KVM_CHECK_EXTENSION` to return integer.
+
+### Changed
+
+- [[#305](https://github.com/rust-vmm/kvm/pull/305)]: Updated kvm-bindings to 0.11.0.
 
 ### Fixed
 

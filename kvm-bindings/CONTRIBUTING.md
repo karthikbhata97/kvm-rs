@@ -4,17 +4,18 @@
 
 ### Bindgen
 The bindings are currently generated using
-[bindgen](https://crates.io/crates/bindgen) version 0.70.1:
+[bindgen](https://crates.io/crates/bindgen) version 0.72.0:
 ```bash
-cargo install bindgen-cli --vers 0.70.1
+cargo install bindgen-cli --vers 0.72.0
 ```
 
 ### Linux Kernel
 Generating bindings depends on the Linux kernel, so you need to have the
-repository on your machine:
+repository on your machine. Replace `v6.16` with the kernel release for
+which you wish to generate bindings:
 
 ```bash
-git clone https://github.com/torvalds/linux.git
+git clone https://github.com/torvalds/linux.git --branch v6.9 --depth 1
 ```
 
 ## Updating bindings / adding a new architecture
@@ -22,7 +23,7 @@ git clone https://github.com/torvalds/linux.git
 When adding a new architecture, the bindings must be generated for all existing
 versions for consistency reasons.
 
-### Example for arm64 and kernel version 6.9
+### Example for arm64 and kernel version 6.16
 
 For this example we assume that you have both linux and kvm-bindings
 repositories in your root.
@@ -33,12 +34,9 @@ pushd kvm-bindings
 mkdir src/arm64
 popd
 
-# linux is the repository that you cloned at the previous step.
 pushd linux
-# Step 2: Checkout the version you want to generate the bindings for.
-git checkout v6.9
 
-# Step 3: Generate the bindings.
+# Step 2: Generate the bindings.
 # This will generate the headers for the targeted architecture and place them
 # in the user specified directory
 
@@ -46,18 +44,18 @@ export ARCH=arm64
 make headers_install ARCH=$ARCH INSTALL_HDR_PATH="$ARCH"_headers
 pushd "$ARCH"_headers
 bindgen include/linux/kvm.h -o bindings.rs  \
-     --impl-debug --with-derive-default  \
+     --impl-debug --with-derive-default --rust-edition 2024  \
      --with-derive-partialeq  --impl-partialeq \
      -- -Iinclude
 popd
 
-# Step 4: Copy the generated file to the arm64 module.
+# Step 3: Copy the generated file to the arm64 module.
 popd
 cp linux/"$ARCH"_headers/bindings.rs kvm-bindings/src/arm64
 
 ```
 
-Steps 2, 3 and 4 must be repeated for all existing architectures.
+Steps 2 and 3 must be repeated for all existing architectures.
 
 Now that we have the bindings generated, for a new architecture we can copy the
 module file from one of the existing modules.
@@ -78,7 +76,7 @@ derive should be present:
 ```rs
 #[cfg_attr(
     feature = "serde",
-    derive(zerocopy::AsBytes, zerocopy::FromBytes, zerocopy::FromZeroes)
+    derive(zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::FromBytes)
 )]
 ```
 

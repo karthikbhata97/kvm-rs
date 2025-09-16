@@ -6,17 +6,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![deny(clippy::undocumented_unsafe_blocks)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
-
-#[cfg(feature = "fam-wrappers")]
-#[macro_use]
-extern crate vmm_sys_util;
-
-#[cfg(feature = "serde")]
-extern crate serde;
-
-#[cfg(feature = "serde")]
-extern crate zerocopy;
 
 #[cfg(feature = "serde")]
 #[macro_use]
